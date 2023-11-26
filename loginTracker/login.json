@@ -1,0 +1,35 @@
+[
+  {
+    "id": "533289",
+    "date": "2023/11/07 13:07:53:765",
+    "type": "INICIO",
+    "details": "TAstorSession.IsValidUser User : AXOFT\\cgarro Terminal: CHOMP|192.168.0.35",
+    "index": 0,
+    "user": "AXOFT\\cgarro",
+    "terminal": "CHOMP",
+    "ip": "192.168.0.35",
+    "loginType": "cloud"
+  },
+  {
+    "id": "534362",
+    "date": "2023/11/07 13:09:20:994",
+    "type": "INICIO",
+    "details": "TAstorSession.IsValidUser User : AXOFT\\jpallotta Terminal: NTBK-000148|192.168.0.72|AA6AD882-734B-49E5-9E28-5B0C810BA33B",
+    "index": 31,
+    "user": "AXOFT\\jpallotta",
+    "terminal": "NTBK-000148",
+    "ip": "192.168.0.72",
+    "loginType": "cloud"
+  },
+  {
+    "id": "513905",
+    "date": "2023/11/07 13:18:38:874",
+    "type": "INICIO",
+    "details": "TAstorSession.IsValidUser User : AXOFT\\ysaucedo Terminal: NTBK-000294|192.168.100.155|DDD6272B-D274-4022-9693-F59CAFB2D0CA",
+    "index": 90,
+    "user": "AXOFT\\ysaucedo",
+    "terminal": "NTBK-000294",
+    "ip": "192.168.100.155",
+    "loginType": "local"
+  }
+]
