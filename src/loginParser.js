@@ -287,7 +287,7 @@ const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
         loginFail.push({
           ...logInfo,
           failDetected: true,
-          failDetails: hasFails.details,
+          failDetails: `User not found: ${hasFails.details}`,
         });
       }
     }
