@@ -1,8 +1,10 @@
 const fs = require("fs");
+const path = require('path');
 const { unlink } = require("fs/promises");
 
-const generateMapJson = (path, jsonFile) => {
-  fs.writeFile(path, JSON.stringify(jsonFile, null, 2), (error) => {
+const generateMapJson = (pathFile, jsonFile) => {
+  const dirPath = path.join(__dirname, pathFile);
+  fs.writeFile(dirPath, JSON.stringify(jsonFile, null, 2), (error) => {
     if (error) {
       console.log("An error has occurred ", error);
       return;
@@ -11,9 +13,10 @@ const generateMapJson = (path, jsonFile) => {
   });
 };
 
-const deleteFile = async (path) => {
+const deleteFile = async (pathFile) => {
+  const dirPath = path.join(__dirname, pathFile);
   try {
-    await unlink(path);
+    await unlink(dirPath);
     console.log(`File ${path} was deleted.`);
     return Promise.resolve(path);
   } catch (error) {

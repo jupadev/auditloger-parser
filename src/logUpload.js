@@ -1,61 +1,79 @@
-const { Sequelize } = require("sequelize");
+const path = require("path");
 const fs = require("fs/promises");
 const chunk = require("lodash.chunk");
+const dayjs = require("dayjs");
 
-const { AUDITLOG_TABLE, BULK_CHUNK, LOGIN_JSON_PATH } = require("./constants");
+const { BULK_CHUNK, LOGIN_JSON_PATH } = require("./constants");
 const { deleteFile } = require("./utils");
 const { sequelize, testConnection } = require("./db/connection");
 const { AuditLogModel } = require("./models/auditLog");
 
+const loginJsonPath = path.join(__dirname, LOGIN_JSON_PATH)
 const exportLoginToDB = async () => {
-  try {
-    if (await fs.access(LOGIN_JSON_PATH)) {
-      console.log("file exists");
-    }
-  } catch (err) {
-    console.error("Error file doesn't exist", err);
-    return Promise.reject(err);
-  }
 
-  try {
-    const data = await fs.readFile(LOGIN_JSON_PATH, {
-      encoding: "utf8",
-    });
-    // Do something with the data
-    const loginJson = JSON.parse(data).map((record) => {
-      return {
-        login_date: new Date(record.date),
-        terminal: record.terminal,
-        login_type: record.isCloud ? "C" : "N",
-        login_method: record.isCloud ? "Cloud" : "Network",
-        is_cloud_login: Boolean(record.isCloud),
-        is_fail: Boolean(record.failDetected),
-        fail_detail: record.failDetails,
-        from_dict_network_login: null,
-        from_dict_enabled_nexo: null,
-        from_dict_nexo_user: null,
-      };
-    });
-
-    const bulkRecords = chunk(loginJson, BULK_CHUNK);
-    console.log("bulkRecords", bulkRecords);
-    await testConnection();
-
-    for (const bulk of bulkRecords) {
-      const resultBulk = await AuditLogModel.bulkCreate(bulk);
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (await fs.access(loginJsonPath)) {
+        console.log("file exists");
+      }
+    } catch (err) {
+      console.error("Error file doesn't exist", err);
+      return reject(err);
     }
 
-    await sequelize.close();
-    console.log("DB connection closed");
-  } catch (error) {
-    console.log("error reading auditlog json", error);
-  }
+    try {
+      const data = await fs.readFile(loginJsonPath, {
+        encoding: "utf8",
+      });
+      // Do something with the data
+      const loginJson = JSON.parse(data).map((record) => {
+        return {
+          login_date2: record.date,
+          terminal: record.terminal,
+          login_type: record.isCloud ? "C" : "N",
+          login_method: record.isCloud ? "Cloud" : "Network",
+          is_cloud_login: Boolean(record.isCloud),
+          is_fail: Boolean(record.failDetected),
+          fail_detail: record.failDetails,
+          from_dict_network_login: null,
+          from_dict_enabled_nexo: null,
+          from_dict_nexo_user: null,
+        };
+      });
+  
+      const bulkRecords = chunk(loginJson, BULK_CHUNK);
+      console.log("bulkRecords", bulkRecords.length);
+      await testConnection(sequelize);
+  
+      for (const bulk of bulkRecords) {
+        const resultBulk = await AuditLogModel.bulkCreate(bulk);
+      }
+  
+      await sequelize.close();
+      console.log("DB connection closed");
+      return resolve();
+    } catch (error) {
+      return reject(error);
+    }
+  })
 };
 
 const start = async () => {
-  await exportLoginToDB();
-  console.log("deleting file file");
-  await deleteFile(LOGIN_JSON_PATH);
+  try {
+    await exportLoginToDB();
+    console.log("deleting file file");
+  } catch (error) {
+    console.log("error exporting to DB", error)
+  }
+
+  const renamePath = path.join(__dirname, `../loginTracker/proccessed-${dayjs().format('YYYY-MM-DD HHmmss')}.json`)
+  try {
+    await fs.rename(loginJsonPath, renamePath)
+    console.log("source file renamed");
+  } catch (error) {
+    console.log("error renaming file", error)
+  }
+  // await deleteFile(loginJsonPath);
 };
 
 start();

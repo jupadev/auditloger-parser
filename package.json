@@ -14,7 +14,9 @@
     "csv-parse": "5.5.2",
     "dayjs": "1.11.10",
     "lodash.chunk": "4.2.0",
+    "mssql": "10.0.1",
     "mysql2": "3.6.5",
-    "sequelize": "6.35.1"
+    "sequelize": "6.35.1",
+    "tedious": "16.6.1"
   }
 }
