@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, DataTypes } = require("sequelize");
 
 const { AUDITLOG_TABLE } = require("../constants");
 const { sequelize } = require("../db/connection");
@@ -6,7 +6,16 @@ const { sequelize } = require("../db/connection");
 const AuditLogModel = sequelize.define(
   AUDITLOG_TABLE,
   {
-    login_date: { type: Sequelize.DATE },
+    login_date2: { type: DataTypes.DATE},
+    login_date: { type: DataTypes.DATE,
+      // get: function()  {
+      //   // 'this' allows you to access attributes of the instance
+      //   if(this.getDataValue('login_date')){
+      //     console.log("GET login_date")
+      //     return this.getDataValue('login_date').toISOString().slice(0,19); //'2023-11-28T19:45:55'
+      //   }
+      // },
+     },
     terminal: { type: Sequelize.STRING },
     login_method: { type: Sequelize.STRING },
     login_type: { type: Sequelize.STRING },

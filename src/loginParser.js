@@ -4,11 +4,12 @@ const { createInterface } = require("readline");
 const { parse } = require("csv-parse");
 const dayjs = require("dayjs");
 const isBetween = require("dayjs/plugin/isBetween");
-const { Transform } = require("stream");
+const path = require('path');
 
 const {
   LOGIN_JSON_PATH,
   ASTOR_LOGS_PATH,
+  LOGS_FOLDER_PATH,
   ROW_DELIMITER,
   LOGIN_TYPES,
 } = require("./constants");
@@ -325,7 +326,8 @@ const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
 };
 
 const createLoginAttemptFile = (logMap) => {
-  generateMapJson("./logs/map.json", logMap);
+  const filename = `map_${dayjs().format('YYYY-MM-DD HHmmss')}.json`
+  generateMapJson(`${LOGS_FOLDER_PATH}/${filename}`, logMap);
   auditLoginOnly = logMap.reduce((prev, logRecord) => {
     const { type, details } = logRecord;
     if (
@@ -345,7 +347,7 @@ const generateMap = () => {
   return new Promise((resolve, reject) => {
     try {
       const rlInterface = createInterface({
-        input: fs.createReadStream(ASTOR_LOGS_PATH),
+        input: fs.createReadStream(path.join(__dirname, ASTOR_LOGS_PATH)),
         output: process.stdout,
         terminal: false, // to indicate this is not TTY
       });
