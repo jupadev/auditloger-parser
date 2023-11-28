@@ -17,10 +17,10 @@ dayjs.extend(isBetween);
 
 let auditLoginOnly = [];
 
-const LOG_CHUNK = 30;
+const LOG_CHUNK = 40;
 
-const getLogChunk = (logRecord, logMap) => {
-  return logMap.slice(logRecord.index, logRecord.index + LOG_CHUNK);
+const getLogChunk = (logRecord, logMap, endIndex) => {
+  return logMap.slice(logRecord.index, endIndex || logRecord.index + LOG_CHUNK);
 };
 
 const getTerminalInfo = (startLogin, logMap) => {
@@ -64,13 +64,23 @@ const checkIsCloudLogin = (logChunk = []) => {
       type: "SALIDA",
       details: "TAstorData.AddSession",
     },
+    {
+      type: "SALIDA",
+      details: "TAstorSession.CloudLogin",
+    },
   ];
+  const rulesDone = [];
   const loginSuccess = logChunk.filter((chunk) => {
     const details = chunk.details.trim();
-    return conditions.find((condition) => {
-      return (
-        chunk.type === condition.type && details.startsWith(condition.details)
-      );
+    return conditions.find((condition, index) => {
+      const result =
+        chunk.type === condition.type &&
+        details.startsWith(condition.details) &&
+        !rulesDone.includes(index);
+      if (result) {
+        rulesDone.push(index);
+      }
+      return result;
     });
   });
   return loginSuccess.length === conditions.length;
@@ -103,13 +113,18 @@ const checkIsLocalLogin = (logChunk = []) => {
       details: "TAstorData.Login",
     },
   ];
+  const rulesDone = [];
   const loginSuccess = logChunk.filter((chunk) => {
     const details = chunk.details.trim();
-
-    return conditions.find((condition) => {
-      return (
-        chunk.type === condition.type && details.startsWith(condition.details)
-      );
+    return conditions.find((condition, index) => {
+      const result =
+        chunk.type === condition.type &&
+        details.startsWith(condition.details) &&
+        !rulesDone.includes(index);
+      if (result) {
+        rulesDone.push(index);
+      }
+      return result;
     });
   });
 
@@ -123,33 +138,84 @@ const checkIsNetworkLogin = (logChunk = []) => {
       details: "TAstorSession.IsValidUser User",
     },
     {
-      type: "INICIO",
-      details: "TAstorSession.Login",
+      type: "SALIDA",
+      details: "TAstorSession.ValidatePassword",
     },
     {
       type: "INICIO",
       details: "TAstorData.AssignRol",
     },
     {
-      type: "T_AUDI",
-      details: "TAstorSession.Login ValidarServicioLevantado",
-    },
-    {
-      type: "T_AUDI",
-      details: "TAstorSession.InternalLogin",
+      type: "INICIO",
+      details: "TAstorData.AddSession",
     },
     {
       type: "SALIDA",
       details: "TAstorData.AddSession",
     },
   ];
+  const rulesDone = [];
   const loginSuccess = logChunk.filter((chunk) => {
     const details = chunk.details.trim();
+    return conditions.find((condition, index) => {
+      const result =
+        chunk.type === condition.type &&
+        details.startsWith(condition.details) &&
+        !rulesDone.includes(index);
+      if (result) {
+        rulesDone.push(index);
+      }
+      return result;
+    });
+  });
 
-    return conditions.find((condition) => {
-      return (
-        chunk.type === condition.type && details.startsWith(condition.details)
-      );
+  return loginSuccess.length === conditions.length;
+};
+
+const checkWrongPassword = (logChunk = []) => {
+  const conditions = [
+    {
+      type: "SALIDA",
+      details: "TAstorSession.IsValidUser User",
+    },
+    {
+      type: "INICIO",
+      details: "TAstorSession.IsUserLogged",
+    },
+    {
+      type: "SALIDA",
+      details: "TAstorData.ExistSessionByIdentifier",
+    },
+    {
+      type: "SALIDA",
+      details: "TAstorSession.IsUserLogged     --> Result = False",
+    },
+  ];
+
+  const rulesDone = [];
+  let skipTest = false;
+  const loginSuccess = logChunk.filter((chunk) => {
+    const details = chunk.details.trim();
+    if (
+      (chunk.type === "SALIDA" &&
+        details.startsWith("TAstorData.AddSession")) ||
+      (chunk.type === "SALIDA" &&
+        details.startsWith("TAstorSession.ValidatePassword")) ||
+      skipTest
+    ) {
+      skipTest = true;
+      return false;
+    }
+
+    return conditions.find((condition, index) => {
+      const result =
+        chunk.type === condition.type &&
+        details.startsWith(condition.details) &&
+        !rulesDone.includes(index);
+      if (result) {
+        rulesDone.push(index);
+      }
+      return result;
     });
   });
 
@@ -186,29 +252,90 @@ const checkIsLoginFail = (logChunk = []) => {
   return loginSuccess.length === 3;
 };
 
-const identifyLoginTypes = (auditLoginOnly = []) => {
+const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
   const cloudLoginSuccess = [];
-  const localLoginSuccess = [];
   const networkLoginSuccess = [];
   const loginFail = [];
-  auditLoginOnly.forEach(({ logChunk, ...logInfo }) => {
-    if (checkIsCloudLogin(logChunk)) {
-      cloudLoginSuccess.push({ ...logInfo, loginType: LOGIN_TYPES.cloud });
-    } else if (checkIsLocalLogin(logChunk)) {
-      localLoginSuccess.push({ ...logInfo, loginType: LOGIN_TYPES.standard });
-    } else if (checkIsNetworkLogin(logChunk)) {
-      networkLoginSuccess.push({ ...logInfo, loginType: LOGIN_TYPES.network });
-    } else if (checkIsLoginFail(logChunk)) {
-      loginFail.push(logInfo);
+  const wrongPasswords = [];
+  const maxIndex = logMap.length;
+  auditLoginOnly.forEach((logInfo) => {
+    const startIndex = logInfo.index;
+    let index = logInfo.index;
+    let isValidUserStart = true;
+    while (isValidUserStart) {
+      const logInfoNext = logMap[index];
+      if (
+        logInfoNext.type === "SALIDA" &&
+        logInfoNext.details
+          .trim()
+          .startsWith("TAstorSession.IsValidUser User :")
+      ) {
+        isValidUserStart = false;
+      } else {
+        index++;
+      }
+      if (index === 20) {
+        isValidUserStart = false;
+      }
+    }
+    if (!isValidUserStart && index - startIndex > 1) {
+      const logs = getLogChunk(logInfo, logMap, index) || [];
+      const hasFails = logs.find(({ type, details = "" }) => {
+        return type === "#FALLA" && details.includes("Proceso: IsValidUser");
+      });
+      if (hasFails) {
+        loginFail.push({
+          ...logInfo,
+          failDetected: true,
+          failDetails: hasFails.details,
+        });
+      }
     }
   });
 
+  const failIndexes = loginFail.map((log) => log.index);
+
+  auditLoginOnly.forEach(({ logChunk, ...logInfo }) => {
+    if (failIndexes.includes(logInfo.index)) {
+      return;
+    }
+
+    if (checkWrongPassword(logChunk)) {
+      wrongPasswords.push({
+        ...logInfo,
+        isCloud: logChunk.some(
+          (log) =>
+            log.type === "INICIO" &&
+            log.details.trim().startsWith("TAstorSession.CloudLogin")
+        ),
+        failDetected: true,
+        failDetails: "Wrong password",
+      });
+    } else if (checkIsCloudLogin(logChunk)) {
+      cloudLoginSuccess.push({
+        ...logInfo,
+        loginType: LOGIN_TYPES.cloud,
+        isCloud: true,
+      });
+    } else if (checkIsNetworkLogin(logChunk)) {
+      networkLoginSuccess.push({
+        ...logInfo,
+        loginType: LOGIN_TYPES.network,
+        isCloud: false,
+      });
+    }
+  });
+  console.log(
+    "wrongPasswords",
+    wrongPasswords.map((i) => i.index)
+  );
+  console.log("login fail", loginFail.length);
   console.log("cloud login", cloudLoginSuccess.length);
-  console.log("local login", localLoginSuccess.length);
   console.log("network login", networkLoginSuccess.length);
   generateMapJson(LOGIN_JSON_PATH, [
+    ...wrongPasswords,
+    ...loginFail,
     ...cloudLoginSuccess,
-    ...localLoginSuccess,
     ...networkLoginSuccess,
   ]);
 };
@@ -225,7 +352,8 @@ const createLoginAttemptFile = (logMap) => {
     }
     return prev;
   }, []);
-  identifyLoginTypes(auditLoginOnly);
+  console.log(auditLoginOnly.length);
+  identifyLoginTypes(auditLoginOnly, logMap);
 };
 
 const generateMap = () => {
