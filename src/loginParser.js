@@ -258,38 +258,25 @@ const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
   const loginFail = [];
   const wrongPasswords = [];
   const maxIndex = logMap.length;
-  auditLoginOnly.forEach((logInfo) => {
-    const startIndex = logInfo.index;
-    let index = logInfo.index;
-    let isValidUserStart = true;
-    while (isValidUserStart) {
-      const logInfoNext = logMap[index];
-      if (
-        logInfoNext.type === "SALIDA" &&
-        logInfoNext.details
-          .trim()
-          .startsWith("TAstorSession.IsValidUser User :")
-      ) {
-        isValidUserStart = false;
-      } else {
-        index++;
-      }
-      if (index === 20) {
-        isValidUserStart = false;
-      }
-    }
-    if (!isValidUserStart && index - startIndex > 1) {
-      const logs = getLogChunk(logInfo, logMap, index) || [];
-      const hasFails = logs.find(({ type, details = "" }) => {
-        return type === "#FALLA" && details.includes("Proceso: IsValidUser");
+  auditLoginOnly.forEach((logInfo = {}) => {
+    const { logChunk, ...restLogInfo } = { ...logInfo };
+    const lastIndex =
+      logChunk.findIndex((log) => {
+        return (
+          log.type === "SALIDA" &&
+          log.details.trim().startsWith("TAstorSession.IsValidUser User :")
+        );
+      }) || 0;
+    const logs = logChunk.slice(0, lastIndex);
+    const hasFails = logs.find(({ type, details = "" }) => {
+      return type === "#FALLA" && details.includes("Proceso: IsValidUser");
+    });
+    if (hasFails) {
+      loginFail.push({
+        ...restLogInfo,
+        failDetected: true,
+        failDetails: `User not found: ${hasFails.details}`,
       });
-      if (hasFails) {
-        loginFail.push({
-          ...logInfo,
-          failDetected: true,
-          failDetails: `User not found: ${hasFails.details}`,
-        });
-      }
     }
   });
 
@@ -325,10 +312,7 @@ const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
       });
     }
   });
-  console.log(
-    "wrongPasswords",
-    wrongPasswords.map((i) => i.index)
-  );
+  console.log("wrongPasswords", wrongPasswords.length);
   console.log("login fail", loginFail.length);
   console.log("cloud login", cloudLoginSuccess.length);
   console.log("network login", networkLoginSuccess.length);
@@ -352,7 +336,7 @@ const createLoginAttemptFile = (logMap) => {
     }
     return prev;
   }, []);
-  console.log(auditLoginOnly.length);
+  console.log("Start login detected:", auditLoginOnly.length);
   identifyLoginTypes(auditLoginOnly, logMap);
 };
 
