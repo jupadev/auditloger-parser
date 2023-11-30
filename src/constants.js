@@ -4,6 +4,7 @@ module.exports = {
   LOGIN_JSON_PATH: "../loginTracker/login.json",
   // ASTOR_LOGS_PATH: "./logs/AstorSessionTest.txt",
   ASTOR_LOGS_PATH: "../logs/AstorSession.txt",
+  ASTOR_FOLDER_PATH: "../logs",
   LOGS_FOLDER_PATH: "../logs",
   LOGIN_TYPES: {
     cloud: "C",
