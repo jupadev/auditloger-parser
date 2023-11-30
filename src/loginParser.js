@@ -1,4 +1,5 @@
 const fs = require("fs");
+const fsPromises = require("fs/promises");
 const { createInterface } = require("readline");
 
 const { parse } = require("csv-parse");
@@ -9,6 +10,7 @@ const path = require('path');
 const {
   LOGIN_JSON_PATH,
   ASTOR_LOGS_PATH,
+  ASTOR_FOLDER_PATH,
   LOGS_FOLDER_PATH,
   ROW_DELIMITER,
   LOGIN_TYPES,
@@ -253,6 +255,27 @@ const checkIsLoginFail = (logChunk = []) => {
   return loginSuccess.length === 3;
 };
 
+const renameAstorSession = async () => {
+  renameFileName = `AstorSession-${dayjs().format('YYYY-MM-DD HHmmss')}.txt`;
+  const renamePath = path.join(__dirname, ASTOR_FOLDER_PATH, `/${renameFileName}`);
+  const astorFilePath = path.join(__dirname, ASTOR_LOGS_PATH)
+  console.log("Renaming proccesed file:", renamePath)
+  try {
+    await fsPromises.rename(astorFilePath, renamePath)
+    console.log("source file was renamed successfully");
+  } catch (error) {
+    console.log("error renaming file", error)
+  }
+
+  try {
+    await fsPromises.writeFile(astorFilePath,"")
+    console.log("New AstorSession was created successfully");
+  } catch (error) {
+    console.log("error creating AstorSession file", error)
+  }
+  
+}
+
 const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
   const cloudLoginSuccess = [];
   const networkLoginSuccess = [];
@@ -322,7 +345,7 @@ const identifyLoginTypes = (auditLoginOnly = [], logMap) => {
     ...loginFail,
     ...cloudLoginSuccess,
     ...networkLoginSuccess,
-  ]);
+  ], renameAstorSession);
 };
 
 const createLoginAttemptFile = (logMap) => {
