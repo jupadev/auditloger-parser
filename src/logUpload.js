@@ -28,7 +28,8 @@ const exportLoginToDB = async () => {
       // Do something with the data
       const loginJson = JSON.parse(data).map((record) => {
         return {
-          login_date2: record.date,
+          login_date: record.date,
+          username: record.user,
           terminal: record.terminal,
           login_type: record.isCloud ? "C" : "N",
           login_method: record.isCloud ? "Cloud" : "Network",
@@ -42,7 +43,7 @@ const exportLoginToDB = async () => {
       });
   
       const bulkRecords = chunk(loginJson, BULK_CHUNK);
-      console.log("bulkRecords", bulkRecords.length);
+      console.log("BulkRecords", bulkRecords.length);
       await testConnection(sequelize);
   
       for (const bulk of bulkRecords) {
@@ -66,7 +67,7 @@ const start = async () => {
     console.log("error exporting to DB", error)
   }
 
-  const renamePath = path.join(__dirname, `../loginTracker/proccessed-${dayjs().format('YYYY-MM-DD HHmmss')}.json`)
+  const renamePath = `../loginTracker/proccessed-${dayjs().format('YYYY-MM-DD HHmmss')}.json`
   try {
     await fs.rename(loginJsonPath, renamePath)
     console.log("source file renamed");
