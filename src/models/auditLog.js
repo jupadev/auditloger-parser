@@ -6,16 +6,7 @@ const { sequelize } = require("../db/connection");
 const AuditLogModel = sequelize.define(
   AUDITLOG_TABLE,
   {
-    login_date2: { type: DataTypes.DATE},
-    login_date: { type: DataTypes.DATE,
-      // get: function()  {
-      //   // 'this' allows you to access attributes of the instance
-      //   if(this.getDataValue('login_date')){
-      //     console.log("GET login_date")
-      //     return this.getDataValue('login_date').toISOString().slice(0,19); //'2023-11-28T19:45:55'
-      //   }
-      // },
-     },
+    login_date: { type: DataTypes.DATE },
     terminal: { type: Sequelize.STRING },
     login_method: { type: Sequelize.STRING },
     login_type: { type: Sequelize.STRING },
@@ -25,6 +16,7 @@ const AuditLogModel = sequelize.define(
     from_dict_network_login: { type: Sequelize.STRING },
     from_dict_enabled_nexo: { type: Sequelize.STRING },
     from_dict_nexo_user: { type: Sequelize.STRING },
+    username: { type: Sequelize.STRING },
   },
   { timestamps: false }
 );
