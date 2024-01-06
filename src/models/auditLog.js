@@ -17,6 +17,7 @@ const AuditLogModel = sequelize.define(
     from_dict_enabled_nexo: { type: Sequelize.STRING },
     from_dict_nexo_user: { type: Sequelize.STRING },
     username: { type: Sequelize.STRING },
+    ip: { type: Sequelize.STRING },
   },
   { timestamps: false }
 );

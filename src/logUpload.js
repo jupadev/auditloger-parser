@@ -3,14 +3,13 @@ const fs = require("fs/promises");
 const chunk = require("lodash.chunk");
 const dayjs = require("dayjs");
 
-const { BULK_CHUNK, LOGIN_JSON_PATH } = require("./constants");
+const { BULK_CHUNK, LOGIN_JSON_PATH, PROCCESSED_JSON_PATH } = require("./constants");
 const { deleteFile } = require("./utils");
 const { sequelize, testConnection } = require("./db/connection");
 const { AuditLogModel } = require("./models/auditLog");
 
-const loginJsonPath = path.join(__dirname, LOGIN_JSON_PATH)
+const loginJsonPath = LOGIN_JSON_PATH;
 const exportLoginToDB = async () => {
-
   return new Promise(async (resolve, reject) => {
     try {
       if (await fs.access(loginJsonPath)) {
@@ -39,15 +38,16 @@ const exportLoginToDB = async () => {
           from_dict_network_login: null,
           from_dict_enabled_nexo: null,
           from_dict_nexo_user: null,
+          ip: record.ip,
         };
       });
   
       const bulkRecords = chunk(loginJson, BULK_CHUNK);
-      console.log("BulkRecords", bulkRecords.length);
       await testConnection(sequelize);
   
       for (const bulk of bulkRecords) {
         const resultBulk = await AuditLogModel.bulkCreate(bulk);
+        console.log('record inserted', resultBulk.length)
       }
   
       await sequelize.close();
@@ -63,18 +63,14 @@ const start = async () => {
   try {
     await exportLoginToDB();
     console.log("deleting file file");
+    const renamePath = PROCCESSED_JSON_PATH.replace('yyyy-mm-dd-time',dayjs().format('YYYY-MM-DD HHmmss'));
+    await fs.rename(loginJsonPath, renamePath)
+    console.log("source file renamed");
   } catch (error) {
     console.log("error exporting to DB", error)
   }
 
-  const renamePath = `../loginTracker/proccessed-${dayjs().format('YYYY-MM-DD HHmmss')}.json`
-  try {
-    await fs.rename(loginJsonPath, renamePath)
-    console.log("source file renamed");
-  } catch (error) {
-    console.log("error renaming file", error)
-  }
-  // await deleteFile(loginJsonPath);
+  
 };
 
 start();

@@ -257,8 +257,8 @@ const checkIsLoginFail = (logChunk = []) => {
 
 const renameAstorSession = async () => {
   renameFileName = `AstorSession-${dayjs().format('YYYY-MM-DD HHmmss')}.txt`;
-  const renamePath = path.join(__dirname, ASTOR_FOLDER_PATH, `/${renameFileName}`);
-  const astorFilePath = path.join(__dirname, ASTOR_LOGS_PATH)
+  const renamePath = path.join(ASTOR_FOLDER_PATH, `/${renameFileName}`);
+  const astorFilePath = ASTOR_LOGS_PATH
   console.log("Renaming proccesed file:", renamePath)
   try {
     await fsPromises.rename(astorFilePath, renamePath)
@@ -370,7 +370,7 @@ const generateMap = () => {
   return new Promise((resolve, reject) => {
     try {
       const rlInterface = createInterface({
-        input: fs.createReadStream(path.join(__dirname, ASTOR_LOGS_PATH)),
+        input: fs.createReadStream(ASTOR_LOGS_PATH),
         output: process.stdout,
         terminal: false, // to indicate this is not TTY
       });
